@@ -83,9 +83,9 @@ The application contains no fake sync service, no endpoint that pretends to repl
 
 This is intended deployment behavior, not current runtime behavior. Central-to-Branch routing would send configuration only to branches explicitly enabled for its master. Branch orders, order items, and payments would flow Branch-to-Central for reporting. Branch transactions would not route directly to another branch.
 
-### Alternative: simple payment sync API (proposal only)
+### Alternative: simple payment sync API (proposal)
 
-If we want to synchronize payments with ordinary HTTP instead of SymmetricDS, each side would have its own PostgreSQL database. A branch-side sync action would read payments that Central has not accepted yet and send them in a batch to a Central API:
+we can synchronize payments with ordinary HTTP instead of SymmetricDS, each side would have its own PostgreSQL database. A branch-side sync action would read payments that Central has not accepted yet and send them in a batch to a Central API:
 
 ```text
 TRIVANDRUM RESTAURANT                         CENTRAL HUB
@@ -206,4 +206,10 @@ Create an order at `POST /api/branches/{branchId}/orders`:
 {"customerType":"GUEST","items":[{"menuVariantId":"<variant-uuid>","quantity":2}]}
 ```
 
-The order stores the current branch price. Record payment at `POST /api/branches/{branchId}/payments`. Branch reports are available from `/api/central/reports/branches/{branchId}` and `/api/central/reports/branches`. `GET /api/central/payments` returns the shared-database payment ledger with each record's branch identity. This is a Central read over the local shared database, not SymmetricDS replication.
+The order stores the current branch price. Record payment at `POST /api/branches/{branchId}/payments`. Branch reports are available from `/api/central/reports/branches/{branchId}` and `/api/central/reports/branches`.
+
+### How Central gets branch reports in this demo
+
+The current app uses **one shared PostgreSQL database**. When Central calls `GET /api/central/reports/branches/{branchId}`, the API calculates the requested branch's totals from the orders and payments already stored in that database. `GET /api/central/reports/branches` calculates the same kind of summary for each branch, keeping each result labeled with its branch identity. The API scopes each calculation by `branchId` where appropriate; it does not contact a separate branch server or copy data from another database.
+
+Likewise, `GET /api/central/payments` returns the shared-database payment ledger with each record's branch identity. These are Central reads over the shared local database, not branch-to-central replication. If separate databases are introduced later, data would need to be transferred to Central before Central's own database could report on it.
