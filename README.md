@@ -4,7 +4,13 @@ A Java 21 / Spring Boot modular monolith for modeling a Central Hub and isolated
 
 ## 1. Problem statement
 
-The Central Hub creates branches, centrally managed mastermenu data, and branch-specific availability. Each branch can see only the menu masters explicitly enabled for it. Branch prices vary by branch and customer type (STAFF/GUEST). Orders keep the price used at purchase time; payments belong to an order in the same branch. Central reports aggregate branch-owned transaction data.
+The interview problem statement was to build a restaurant management system with a Central Hub and local restaurant branches. Central manages branches and master data, explicitly allocates menu masters to selected branches, and needs to collect branch orders/payments for reporting. Branches must remain isolated, and the project should demonstrate Domain-Driven Design (DDD).
+
+In this demo, each branch can see only the menu masters explicitly enabled for it. Prices vary by branch and customer type (`STAFF`/`GUEST`), orders keep the price used at purchase time, and payments belong to an order in the same branch. Central reports summarize branch-owned transaction data.
+
+With separate Central and branch databases, transaction syncing could be implemented by a scheduled task that sends batches periodically or by a branch calling a Central `POST` API when it has payments to send. This project uses one shared PostgreSQL database, so Central's `GET` report and payment APIs read branch-scoped records already in that database. They provide Central with report/payment views, but do not copy or replicate data between database nodes.
+
+The code uses a DDD-inspired modular monolith with a Clean Architecture and Ports-and-Adapters hybrid. Business rules and use-case coordination stay in the domain/application core. HTTP controllers and the database persistence adapter sit outside that core and connect through ports, keeping web and database details out of the domain model.
 
 ## 2. Business rules
 
